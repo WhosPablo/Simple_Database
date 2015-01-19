@@ -1,2 +1,2 @@
-# Simple_Database
+# Simple Database
 Simple Database Implementation
