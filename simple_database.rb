@@ -62,21 +62,21 @@ class DBConsole
 
   def run (database)
     STDIN.each_line do |l|
-      inputOutput(database, l)
-    end
+      inputOutput(database, l)          # For each line in the standard input,
+    end                                 #  evaluate data and handle output.
   end
 
   def inputOutput(db, input)
-    cmd = input.split(' ')
+    cmd = input.split(' ')              #split line into separate arguments
     case cmd [0]
       when "END"
-        abort()
+        abort()                         #exit program if command is end
       when "SET"
         db.set(cmd[1], cmd[2])
-      when "GET"
+      when "GET"                        #if command GET then pri
         value = db.get(cmd[1])
-        if value.nil?
-          puts "NULL"
+        unless value
+          puts "NULL"                   # Print NULL if db.get(key) returns nil
         else
           puts value
         end
@@ -86,15 +86,15 @@ class DBConsole
         puts db.numEqualTo(cmd[1])
       when "BEGIN"
         db.begin()
-      when "ROLLBACK"
-        puts "NO TRANSACTION" unless db.rollback()
-      when "COMMIT"
-        puts "NO TRANSACTION" unless db.commit()
+      when "ROLLBACK"                               # Prints NO TRANSACTION if 
+        puts "NO TRANSACTION" unless db.rollback()  # db.rollback() returns FALSE
+      when "COMMIT"                                 # Prints NO TRANSACTION if
+        puts "NO TRANSACTION" unless db.commit()    # db.commit() returns FALSE
       else
         if cmd[0]
-          puts "Invalid command " + cmd[0]
-        else
-          puts "No command"
+          puts "Invalid command " + cmd[0]          # Prints invalid command if
+        else                                        # command is not recognized
+          puts "No command"                         # else prints no command
         end
     end
   end
