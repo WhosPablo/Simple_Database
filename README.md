@@ -27,15 +27,22 @@ Simple Database Implementation
 
 ###Running Console
 
-'''
+```
 ruby simple_database.rb
-'''
+```
 
 ###Testing
 
-'''
+```
 sh test.sh
-'''
+```
+Tests folder includes text used in tests
+
+test_in$i.txt has the input for that specific test
+correct_out$i.txt has the expected output for the test
+
+To include more tests add input and output files and increase range in for loop in 
+the shell script
 
 
 
