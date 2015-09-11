@@ -46,5 +46,3 @@ To include more tests add input and output files and increase range in for loop 
 the shell script
 
 
-
-Pablo Arango
