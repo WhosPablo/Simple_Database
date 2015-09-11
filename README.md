@@ -48,6 +48,3 @@ the shell script
 
 
 Pablo Arango
-
-
-### Methods
