@@ -152,8 +152,10 @@ class SimpleDatabase
 
   def set (name, value)
     if transaction_block.last             #check for a last transaction
-      transaction_block.last[name] =
-        database[name]                    #save value before changes
+      unless transaction_block.last[name]
+        transaction_block.last[name] =
+          database[name]                  #save value before changes
+      end
     end   
     database[name] = value                #set value in database
   end
@@ -169,8 +171,10 @@ class SimpleDatabase
 
   def unset (name)
     if transaction_block.last             #check for a last transaction
-      transaction_block.last[name] = 
-        database[name]                    #save value before changes
+      unless transaction_block.last[name]
+        transaction_block.last[name] =
+          database[name]                  #save value before changes
+      end
     end
     database.delete(name)                 #delete value in database
   end
