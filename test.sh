@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for i in {0..5}; do
+for i in {0..6}; do
   test_out=$(cat tests/test_in$i.txt | ruby ./simple_database.rb)
   correct_out=$(cat tests/correct_out$i.txt)
 

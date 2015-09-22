@@ -38,12 +38,10 @@
 # Allows for declaring functions at the bottom so that the code looks more
 # organized
 END {
-    db = SimpleDatabase.new         # New database object
-    db_console = DBConsole.new      # New database console object
-    db_console.run(db)              # Run database console on database
+  db = SimpleDatabase.new     # New database object
+  db_console = DBConsole.new  # New database console object
+  db_console.run(db)          # Run database console on database
 }
-
-
 
 =begin
 
@@ -51,50 +49,45 @@ END {
 
   handles communication between STDIN/STDOUT and database
 
-  Methods
-  --------------
-    run:
-      runs console on specified database
-    evaluate_io:
-      evaluates commands from standerd input and outputs results on standard output  
 =end
+
 class DBConsole
 
   def run (database)
     STDIN.each_line do |l|
-      inputOutput(database, l)          # For each line in the standard input,
-    end                                 #  evaluate data and handle output.
+      evaluate_io(database, l) # For each line in the standard input,
+    end                        # evaluate data and handle output.
   end
 
-  def inputOutput(db, input)
-    cmd = input.split(' ')              #split line into separate arguments
+  def evaluate_io(db, input)
+    cmd = input.split(' ')                #split line into separate arguments
     case cmd [0]
-      when "END"
-        abort()                         #exit program if command is end
-      when "SET"
+      when 'END'
+        abort
+      when 'SET'
         db.set(cmd[1], cmd[2])
-      when "GET"                        #if command GET then pri
+      when 'GET'
         value = db.get(cmd[1])
-        unless value
-          puts "NULL"                   # Print NULL if db.get(key) returns nil
+        if value.nil?
+          puts 'NULL'
         else
           puts value
         end
-      when "UNSET"
+      when 'UNSET'
         db.unset(cmd[1])
-      when "NUMEQUALTO"
-        puts db.numEqualTo(cmd[1])
-      when "BEGIN"
-        db.begin()
-      when "ROLLBACK"                               # Prints NO TRANSACTION if 
-        puts "NO TRANSACTION" unless db.rollback()  # db.rollback() returns FALSE
-      when "COMMIT"                                 # Prints NO TRANSACTION if
-        puts "NO TRANSACTION" unless db.commit()    # db.commit() returns FALSE
+      when 'NUMEQUALTO'
+        puts db.num_equal_to(cmd[1])
+      when 'BEGIN'
+        db.begin
+      when 'ROLLBACK'
+        puts 'NO TRANSACTION' unless db.rollback
+      when 'COMMIT'
+        puts 'NO TRANSACTION' unless db.commit
       else
         if cmd[0]
-          puts "Invalid command " + cmd[0]          # Prints invalid command if
-        else                                        # command is not recognized
-          puts "No command"                         # else prints no command
+          puts 'Invalid command ' + cmd[0]  # Prints invalid command if
+        else                                # command is not recognized
+          puts 'No command'                 # else prints no command
         end
     end
   end
@@ -105,102 +98,107 @@ end
 
   SimpleDatabase
 
-  Main database object does not handle any STDIN/STDOUT
-
-  Variables
-  -------------
-    database:
-        holds the working database with all changes
-    transaction:
-        holds dictionaries with changes that can be rolled back to 
-        if necessary and cleared when commiting changes
-
-  Methods
-  --------------
-    set(name, value):
-        Check for transaction_block and save value before changes, then save
-        value to database with name as the key.
-    get(name):
-        Return the value of the variable name, or nil if that variable 
-        is not set.
-    unset(name):
-        Unset the variable name, making it just like that variable was 
-        never set.
-    numEqualTo(value):
-        Print out the number of variables that are currently set 
-        to value. If no variables equal that value, print 0.
-    begin:
-        Open a new transaction block. Transaction blocks can be nested; a 
-        BEGIN can be issued inside of an existing block.
-    rollback:
-        Undo all of the commands issued in the most recent transaction block, 
-        and close the block. Print nothing if successful, or return FALSE
-        if no transaction is in progress.
-    commit:
-        Close all open transaction blocks, permanently applying the changes 
-        made in them. Return FALSE if no transaction is in progress.
+  Main database object. Does not handle any STDIN/STDOUT
 
 =end
+
 class SimpleDatabase
 
-  attr_accessor :database, :transaction_block
-
   def initialize
-    @database = {}                        #Main Databse
-    @transaction_block = []               #represents history of changes
+    @database = {}             #Main Database
+    @database_value_count = {} #counts of each value
+    @transaction_block = []    #represents history of changes
   end
 
   def set (name, value)
-    if transaction_block.last             #check for a last transaction
-      unless transaction_block.last[name]
-        transaction_block.last[name] =
-          database[name]                  #save value before changes
-      end
-    end   
-    database[name] = value                #set value in database
-  end
-
-  def get (name)
-    value = database[name]  
-    if value.nil? 
-      return nil                          #return nill if no vale found
-    else
-      return value                        #return value
-    end
+    save_previous_if_transaction(name)
+    set_databases(name, value)
   end
 
   def unset (name)
-    if transaction_block.last             #check for a last transaction
-      unless transaction_block.last[name]
-        transaction_block.last[name] =
-          database[name]                  #save value before changes
-      end
+    if get(name).nil?
+      return true
     end
-    database.delete(name)                 #delete value in database
+    save_previous_if_transaction(name)
+    unset_databases(name)
   end
 
-  def numEqualTo (value)
-    return database.values.count(value)   #return number of variables set to value
+  def get (name)
+    @database[name]
+  end
+
+  def num_equal_to (value)
+    value = get_count(value)
+    value.nil? ? 0 : value
   end
 
   def begin
-    transaction_block << {}               #create a new transaction block history
+    @transaction_block.push({})                     #create a new transaction block history
   end
 
   def rollback
-    if transaction_block.empty?
-      return false                        #return false if NO TRANSACTION
+    if @transaction_block.empty?
+      return false
     end
 
-    database.merge!(transaction_block.pop)#remove changes from last transaction 
-    database.delete_if{|k,v| v==nil}      #delete values that were erased when rolling back
+    @transaction_block.pop.each do |name, oldvalue| #remove changes from last transaction
+      if oldvalue.nil?
+        unset_databases(name)
+      else
+        set_databases(name, oldvalue)
+      end
+    end
+
   end
 
   def commit
-    if transaction_block.empty?
-      return false                        #return false if NO TRANSACTION
+    if @transaction_block.empty?
+      return false
     end
-    transaction_block.clear               #clear history of changes
+    @transaction_block.clear                      #clear history of changes
+  end
+
+
+  private # Private Methods ------------------------------------------
+
+  def save_previous_if_transaction (name)
+    if @transaction_block.last
+      unless @transaction_block.last[name]
+        @transaction_block.last[name] = get(name) #save value before changes
+      end
+    end
+  end
+
+  def set_databases(name, value)
+    dec_or_del_count_if_present(get(name))    #decrement count of previous value
+    @database[name] = value                   #set value in database
+    inc_or_create_count(value)                #increment count of new value
+  end
+
+  def unset_databases(name)
+    dec_or_del_count_if_present(get(name))    #decrement count of previous value
+    @database.delete(name)                    #delete value in database
+  end
+
+  def get_count(value)
+    @database_value_count[value]
+  end
+
+  def dec_or_del_count_if_present (value)
+    unless get_count(value).nil?
+      @database_value_count[value] -= 1
+      if get_count(value) <= 0
+        @database_value_count.delete(value)
+      end
+    end
+  end
+
+  def inc_or_create_count (value)
+    if get_count(value).nil?
+      @database_value_count[value] = 1
+    else
+      @database_value_count[value] += 1
+    end
   end
 end
 

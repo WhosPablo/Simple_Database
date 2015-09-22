@@ -1,0 +1,7 @@
+SET b 3
+BEGIN
+SET b 4
+SET b 5
+ROLLBACK
+GET b
+END
